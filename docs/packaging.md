@@ -1,15 +1,15 @@
-# 音乐格式转换器 0.1.0：构建与离线打包
+# 音乐格式转换器 0.1.1：构建与离线打包
 
 ## 范围与发布契约
 
 - App：`src/MusicFormatConverter.App/MusicFormatConverter.App.csproj`，可执行名 `MusicFormatConverter.App`。
-- 固定 .NET SDK **10.0.400**，Avalonia **11.3.22**；不改根配置及业务代码。
+- 固定 .NET SDK **10.0.400**，Avalonia **11.3.22**；版本从 `Directory.Build.props` 读取。
 - Windows x64：自包含发布，真实 Inno Setup 安装 EXE，可选便携 ZIP。
-- Mac：分别在真实 arm64 / x64 Mac 构建对应 `.app`、`.dmg`。当前机器是 Windows；**提供脚本不等于 Mac 构建、启动或验收已通过**。
+- Mac：分别在原生 arm64 / x64 macOS 构建机编译对应 `.app`、`.dmg`；打包脚本要求全量测试、挂载包验证、原生启动和六模式转换均通过。
 - 程序运行时不下载引擎，不依赖系统 FFmpeg 或系统 .NET。
 - 发布目录为 `MusicFormatConverter.App[.exe]` 同级 **`tools/`**，不是 `tools/win-x64`。开发引擎位于仓库 `tools/<RID>/`。Core 可使用 `MFC_ENGINE_DIR` 覆盖。
 - 安装包不包含 `ffplay`，但完整保留 FFmpeg/ffprobe 所需共享库、许可、来源归档和哈希清单。
-- 当前同版本扩展增加 MP3/FLAC/WAV 输出及导入即列出文件，仍为 0.1.0；默认 Apple Music 智能保真不变。Windows 固定引擎具备 libmp3lame；当前 Mac 原生构建未编入 LAME，新的 MP3 编码明确提示不支持，不能声称跨平台六模式均已验证。
+- 0.1.1 为 Mac 引擎加入锁定源码编译的共享 LAME 3.100，补齐 MP3 编码；原有六模式、默认 Apple Music 智能保真及不降低采样率/声道的策略不变。
 
 所有下列命令均在仓库根目录执行。Windows PowerShell 要求 **PowerShell 7+**，不是 Windows PowerShell 5.1。
 
@@ -36,16 +36,16 @@ pwsh -NoProfile -File ./scripts/package-windows.ps1 -Zip
 输出：
 
 ```text
-artifacts/installer/MusicFormatConverter-0.1.0-win-x64-setup.exe
-artifacts/installer/MusicFormatConverter-0.1.0-win-x64-setup.exe.sha256
-artifacts/MusicFormatConverter-0.1.0-win-x64.zip          # -Zip 时
-artifacts/MusicFormatConverter-0.1.0-win-x64.zip.sha256   # -Zip 时
+artifacts/installer/MusicFormatConverter-0.1.1-win-x64-setup.exe
+artifacts/installer/MusicFormatConverter-0.1.1-win-x64-setup.exe.sha256
+artifacts/MusicFormatConverter-0.1.1-win-x64.zip          # -Zip 时
+artifacts/MusicFormatConverter-0.1.1-win-x64.zip.sha256   # -Zip 时
 artifacts/build/windows-<GUID>/app/                     # 实际 self-contained 输出
 ```
 
 每次使用新构建目录，避免把旧 DLL 打进去。安装包按当前用户安装，不提权、不设开机启动、不注册文件关联、不自动启动 App；卸载不清理用户音源、转换输出和报告。安装包尚未代码签名。安装与卸载共用深蓝黑 Polar 主题、青紫色图标，主要操作流程中文化（未覆盖的系统错误保留英文）。系统高对比度模式保留 Inno 的无障碍回退。
 
-Windows EXE、窗口、快捷方式、已安装应用列表使用同源多尺寸 ICO；Mac bundle 使用 ICNS。原始几何图标及侧图生成器为 `scripts/render-branding.py`，生成资源随源码保存，不增加用户运行依赖。当前重打包仍为 0.1.0，AppId 与安装路径未变。
+Windows EXE、窗口、快捷方式、已安装应用列表使用同源多尺寸 ICO；Mac bundle 使用 ICNS。原始几何图标及侧图生成器为 `scripts/render-branding.py`，生成资源随源码保存，不增加用户运行依赖。AppId 与安装路径保持不变。
 
 `package-windows.ps1` **不会自动获取 FFmpeg**。缺引擎、许可证、对应源码/构建配方、清单、任何共享 DLL、哈希不符或实际转换失败均终止。它先运行版本与 FLAC→ALAC→PCM 一致性测试，再发布 App，复制清单中的全部文件，再对发布副本复测。NuGet/self-contained runtime 的首次 `dotnet publish` 仍可能联网恢复构建依赖；这与成品运行时离线不同。
 
@@ -62,16 +62,16 @@ bash scripts/package-macos.sh osx-arm64
 # Intel Mac 使用同一流程，将 RID 改为 osx-x64
 ```
 
-引擎脚本下载锁定的官方 FFmpeg 8.1.3 tarball，验证 SHA256 后本地编译；保持内建解码器、封装器、过滤器和音频编码器，不启用 GPL、nonfree、version3、network 或外部库自动探测。保留 lavfi，执行真实音频生成、FLAC→ALAC 无损 PCM 对比和 AAC 编码测试。
+引擎脚本下载锁定的官方 FFmpeg 8.1.3 tarball，验证 SHA256 后本地编译；保持内建解码器、封装器、过滤器和音频编码器，不启用 GPL、nonfree、version3、network 或外部库自动探测；仅明确启用本次源码构建的 LAME。保留 lavfi，执行真实音频生成、FLAC→ALAC 无损 PCM 对比和 AAC 编码测试。
 
-使用共享 dylib；将所有 FFmpeg dylib 放在引擎旁，以 `@loader_path` 寻址。验证架构、`otool -L` 依赖解析；只允许同目录引擎库和 Apple 系统库，不允许 Homebrew/构建机绝对路径。不存在 libmp3lame/libopus 外部编码器；内建 MP3/Opus 解码器保留。测试代码不应依赖这些外部编码器来生成输入。
+使用共享 dylib；将所有 FFmpeg dylib 放在引擎旁，以 `@loader_path` 寻址。验证架构、`otool -L` 依赖解析；只允许同目录引擎库和 Apple 系统库，不允许 Homebrew/构建机绝对路径。仅显式启用锁定的 libmp3lame 共享编码器；LAME dylib、源码、配置及许可一起分发。没有 libopus 外部编码器；内建 MP3/Opus 解码器保留。
 
 默认产物：
 
 ```text
 artifacts/build/package-osx-<arch>.<random>/音乐格式转换器.app
-artifacts/installer/MusicFormatConverter-0.1.0-osx-<arch>-unsigned.dmg
-artifacts/installer/MusicFormatConverter-0.1.0-osx-<arch>-unsigned.dmg.sha256
+artifacts/installer/MusicFormatConverter-0.1.1-osx-<arch>-unsigned.dmg
+artifacts/installer/MusicFormatConverter-0.1.1-osx-<arch>-unsigned.dmg.sha256
 ```
 
 `unsigned` 表示**没有 Developer ID 签名/公证**，脚本仍作 ad-hoc 签名以支持本机 Mach-O 加载。生成 `.app` 不是伪造文件夹：它包含自包含 native apphost、runtime、Info.plist 和完整引擎；DMG 使用 Mac 系统 `hdiutil create/verify`。这不代替 UI 启动与音频导入 Apple Music 实机验收。
@@ -110,5 +110,13 @@ pwsh -NoProfile -File ./scripts/test-packaging.ps1
 - 2026-10-08：PowerShell、Bash、Python、JSON、plist/YAML 语法检查通过；缺许可、许可哈希篡改、缺 avcodec DLL、清单越界路径四项负向测试均正确拒绝；固定下载脚本再次执行成功（复用核验后的缓存）。发布清单共 20 个文件，其中 7 个 DLL，0 个 ffplay。
 - 上述语法检查不是 Mac 运行测试。
 - Windows 完整 App 安装包生成、UI 启动和主代理全量业务测试，以本次运行日志及主代理验收为准。
-- Mac 尚未在本 Windows 主机编译/运行；默认 CI 尚未远程触发；签名、公证、Apple Music 实机兼容均待验证。
+- Mac 发布的逐架构结果见 Release 的 `validation-osx-*.json` 与 Actions 日志；Developer ID 签名、公证、Apple Music 实机兼容仍需另行验证。
 - Windows BtbN 引擎含较多第三方库；公开分发前的依赖许可/完整对应源代码核对见 `engine-provenance.md`，不能仅凭 LGPL 文件认为法务已完成。
+
+## Mac Release
+
+手动触发现有 `.github/workflows/package.yml`：macos-15 (arm64)、macos-15-intel (x64) 各自编译 FFmpeg/LAME，运行整套 Core/App/CLI 测试，构建自包含 DMG，再实际挂载并复制到独立临时目录。验证所有 Mach-O 架构、签名、引擎哈希/动态依赖、六种模式的编码/采样率/声道和无损 PCM，确认原生界面进程成功启动。
+
+只有两架构都通过后，才创建同一版本的 GitHub Release，上传两份 DMG 与 SHA256。逐架构验证 JSON 由本地/构建目录保存并追加到 Release。先上传 draft 再公开；已有 Release 不覆盖，必须修改版本号。普通 package.yml 继续只上传 Actions 产物。`docs/macos-release-workflow.yml` 是可选的自动发布工作流示例，启用它需要 GitHub workflow 权限；本次使用现有工作流构建后发布，不依赖新增权限。
+
+安装包在 `Contents/Resources/third-party` 保存 NuGet 包的许可声明、版权元数据及随包 license/notices。FFmpeg/LAME 对应完整源码和构建参数在 `Contents/MacOS/tools/provenance`；这两个共享工具库可被用户替换。

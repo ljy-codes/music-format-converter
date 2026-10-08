@@ -7,6 +7,7 @@ tools/
 *.user
 *.suo
 .DS_Store
+__pycache__/
 TestResults/
 tests/**/Artifacts/
 # Local acceptance evidence may contain user paths and audio names.

@@ -1,0 +1,84 @@
+name: Build and release macOS installers
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: macos-release
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            rid: osx-arm64
+          - runner: macos-15-intel
+            rid: osx-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.400'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build pinned native FFmpeg and LAME
+        run: bash scripts/build-engine-macos.sh '${{ matrix.rid }}'
+      - name: Full suite with real audio engine
+        env:
+          MFC_ENGINE_DIR: ${{ github.workspace }}/tools/${{ matrix.rid }}
+        run: dotnet test MusicFormatConverter.sln -c Release --logger trx --results-directory artifacts/tests
+      - name: Build self-contained app and DMG
+        run: bash scripts/package-macos.sh '${{ matrix.rid }}'
+      - name: Test the mounted DMG, native app startup and six conversion modes
+        run: |
+          version=$(python3 -c 'import xml.etree.ElementTree as E; print(E.parse("Directory.Build.props").findtext(".//Version"))')
+          python3 scripts/test-macos-package.py "artifacts/installer/MusicFormatConverter-$version-${{ matrix.rid }}-unsigned.dmg" '${{ matrix.rid }}' "artifacts/installer/validation-${{ matrix.rid }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.rid }}
+          if-no-files-found: error
+          path: artifacts/installer/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tests-${{ matrix.rid }}
+          path: |
+            artifacts/tests/
+            tests/MusicFormatConverter.App.Tests/bin/Release/net10.0/Artifacts/
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installer-*
+          merge-multiple: true
+          path: installers
+      - name: Verify both architectures and publish one complete release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import xml.etree.ElementTree as E; print(E.parse("Directory.Build.props").findtext(".//Version"))')
+          for rid in osx-arm64 osx-x64; do
+            test -s "installers/MusicFormatConverter-$version-$rid-unsigned.dmg"
+            test -s "installers/validation-$rid.json"
+            (cd installers && sha256sum -c "MusicFormatConverter-$version-$rid-unsigned.dmg.sha256")
+          done
+          # Existing tags/releases are preserved: use a new version for every release.
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "Release v$version already exists; refusing to replace it."
+            exit 1
+          fi
+          gh release create "v$version" installers/* --target "$GITHUB_SHA" --draft \
+            --title "音乐格式转换器 $version · macOS Intel / Apple Silicon" --notes-file "docs/release-$version.md"
+          gh release edit "v$version" --draft=false --latest

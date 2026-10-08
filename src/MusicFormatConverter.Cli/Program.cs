@@ -14,7 +14,7 @@ public static class Program
         if (args.Length == 0 || args[0] is "--help" or "-h")
         {
             Console.WriteLine("""
-                音乐格式转换器 0.1.0 — 完全离线，不修改源文件
+                音乐格式转换器 0.1.1 — 完全离线，不修改源文件
 
                 mfc preview --output <目录> [选项] <文件或文件夹...>
                 mfc convert --output <目录> [选项] <文件或文件夹...>

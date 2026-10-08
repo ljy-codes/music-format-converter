@@ -6,4 +6,4 @@
 
 应用通过独立进程调用 FFmpeg/ffprobe。Windows 与 Mac 引擎配置和许可不同，见 `docs/engine-provenance.md`。安装包 `tools/licenses`、`tools/LICENSE.txt`、`tools/provenance` 保存引擎随附许可、对应 FFmpeg 源码、构建来源和配置。
 
-**本文件不是完整的第三方许可清单。** 首版为本地试用/验收产物，尚需整理并审核所有随包运行库、图形原生库和 Windows FFmpeg 第三方依赖的对应 notices 与源码提供义务后，才能评估公开二进制分发。不将存在 LICENSE 文件或能打包成功表述为分发审核已完成。
+Mac 0.1.1 的包许可声明、原有版权元数据及包内 license/notices 由构建脚本从实际还原的 NuGet 包复制到 `Contents/Resources/third-party`。标准许可文本取自固定 SPDX license-list-data v3.27.0。FFmpeg 与 LAME 均以可替换共享库分发，并附对应源码、构建参数、配置和原始许可。Windows BtbN 引擎仍需补齐其全部第三方依赖对应源码，Windows 二进制不随本次 Mac Release 发布。

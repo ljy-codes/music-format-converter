@@ -2,11 +2,11 @@
 
 离线批量整理本地音乐，以尽量保留音质的方式输出适合导入 Apple Music 的格式。中文桌面界面，支持文件/文件夹、多种音频格式、预检、进度、取消、失败重试与报告。
 
-**当前版本：0.1.0 本地试用版。** Windows x64 为本次本机构建目标；macOS Intel / Apple Silicon 提供原生构建与 DMG 脚本，尚未实机验收。Apple Music 的实际导入和播放也仍需用户设备验证，不能把编码成功等同于播放器兼容认证。
+**当前版本：0.1.1。** macOS 14+ 提供 Intel / Apple Silicon 独立离线 DMG；在 [Releases](https://github.com/ljy-codes/music-format-converter/releases) 下载对应芯片版本，将应用拖入 Applications。Mac 包未经 Developer ID 签名/公证。Windows 0.1.0 的源码预发布和验证记录保留。Apple Music 的实际导入和播放仍需用户设备验证。
 
 ## 快速使用
 
-1. 安装 Windows 安装包，或解压便携包后运行 `MusicFormatConverter.App.exe`。不要只单独复制 EXE，旁边的 `tools` 和运行库必须保留。
+1. Mac 打开对应芯片的 DMG，将“音乐格式转换器.app”拖入 Applications；M 系列选 `osx-arm64`，Intel 选 `osx-x64`。Windows 本地构建包运行 `MusicFormatConverter.App.exe`，并保留旁边的 `tools` 和运行库。
 2. 点击“添加文件”或“添加文件夹”，也可以拖入文件/目录。导入后立即后台扫描并显示候选歌曲，不必先选输出目录；扫描可取消，不会自动转换。
 3. 选择一个与源目录分开的输出目录，默认选择“Apple Music · 智能保真”。有其他用途时才选择 ALAC/AAC/MP3/FLAC/WAV。
 4. 点击“预检”，检查每项拟采用的策略、不支持原因和空间估算；此时不生成音频。
@@ -34,7 +34,7 @@
 ### 首版边界
 
 - 主要支持单声道/立体声、最高 24 位整数无损来源、受支持的标准采样率最高 192 kHz；AAC 编码不接受高于 96 kHz 的来源。不会偷偷降采样或下混。
-- MP3 320 kbps 编码仅支持 32/44.1/48 kHz，其他采样率明确拒绝，不自动降采样。需要离线引擎内置 `libmp3lame`；当前 Windows 包具备，原生 Mac 构建脚本未编入该编码器，会在预检提示不支持新增 MP3 编码（已有 MP3 复制不受影响）。
+- MP3 320 kbps 编码仅支持 32/44.1/48 kHz，其他采样率明确拒绝，不自动降采样。Mac 0.1.1 和 Windows 本地构建引擎均包含 `libmp3lame`；替换引擎缺少该编码器时，预检明确提示不支持新增 MP3 编码。
 - 有损音频转 ALAC/FLAC/WAV 不会恢复音质，体积可能增大。候选列表中的后缀只是提示，是否可转换仍在预检按实际内容判断。
 - 32 位整数、浮点无损来源、DSD、多声道、加密/受保护文件等不支持时明确提示；不提供解密或 DRM 绕过。
 - CUE 只提示，不分轨；整轨音频仍单独处理。不保证外置歌词、内嵌歌词、自定义标签或多张封面完整迁移。
@@ -87,4 +87,4 @@ dotnet run --project ./src/MusicFormatConverter.Cli -- convert --output "D:\FLAC
 - `docs/packaging.md`：Windows 安装包、macOS 原生 app/DMG、手动 CI。
 - `docs/engine-provenance.md`：引擎锁定版本、校验和、源码与再分发待办。
 
-源码和构建脚本可供审阅；二进制、引擎、缓存、测试产物不提交 Git。工作流只在手动触发时构建，不自动发布 Release。当前二进制未代码签名；**Windows 引擎第三方依赖的完整源码/许可分发审核未完成，不作为可直接公开发布的正式版**。
+源码和构建脚本可供审阅；二进制、引擎、缓存、测试产物不提交 Git。现有打包工作流手动触发后生成双架构 Mac 安装包，打包脚本包含完整验证；确认两架构均通过后发布 Mac Release。Mac 默认为 ad-hoc 签名、未公证；**Windows 引擎第三方依赖的完整源码/许可分发审核未完成，不作为可直接公开发布的正式版**。

@@ -60,7 +60,7 @@ swscale-9.dll
 
 此 SHA 为从官方 HTTPS 固定 tarball 实际下载后计算并锁定，未在本任务验证官方 detached GPG 签名，不把哈希等同于发行人数字签名。脚本不声称此版本是未来运行时的“最新”版本。
 
-编译时保留 FFmpeg 内建常见音频解码/编码能力；不启用第三方外部 codec 库。采用 LGPL-2.1-or-later shared 构建，保留 LGPLv2.1 与 LICENSE.md。源码 tarball、构建脚本、configure 参数、config.h、config.mak 全部随引擎放在 `provenance` 中。Mac 二进制由具体 Mac/toolchain 编译，其 SHA 无法提前伪造；成功后由 `engine-manifest.json` 记录，App 签名更改字节后重新生成分发副本清单。
+编译时保留 FFmpeg 内建常见音频解码/编码能力；0.1.1 仅显式加入 LAME 3.100 共享 MP3 编码器，不启用其他外部 codec 自动探测。采用 LGPL-2.1-or-later shared 构建，保留 LGPLv2.1 与 LICENSE.md。源码 tarball、构建脚本、configure 参数、config.h、config.mak 全部随引擎放在 `provenance` 中。Mac 二进制由具体 Mac/toolchain 编译，其 SHA 无法提前伪造；成功后由 `engine-manifest.json` 记录，App 签名更改字节后重新生成分发副本清单。
 
 ## 包内可追溯内容
 
@@ -87,6 +87,15 @@ tools/
 2. **BtbN 大型构建还含第三方依赖**。配方归档给出来源、版本选择、补丁和构建指令，但不等于已归档所有依赖的完整源代码和许可。个别配方可能依赖移动 upstream HEAD；仅凭 tag 无法保证第三方源代码逐字重建。
 3. 公开分发 Windows 二进制前，维护者应补齐对应版本第三方 notices/source mirror（含静态链接进共享 DLL 的依赖），审核许可与源代码提供方式，并与二进制同站提供可获取的完整对应源码。若无法取得完整依赖对应源码，应改用可重建、依赖更少的受控 LGPL 构建，而不是声称当前配方已满足全部义务。
 4. 包内源码是 FFmpeg 对应 source baseline，加上固定构建配方/补丁；第三方完整对应源码审计未完成，所以本次脚本用于本地打包/内部验收，没有自动公开 Release。
-5. Mac 关闭自动探测与外部依赖可缩小来源面，但仍需要真实 Mac 编译日志、产物、系统依赖检查和分发审核。目前只在 Windows 做语法核验，未提供虚构 Mac 二进制或实机验收结论。
+5. Mac 关闭外部依赖自动探测，仅显式启用锁定 LAME；原生构建日志、测试与产物由现有打包工作流留存，发布附件含逐架构验证记录。Apple Music 导入与 Developer ID 公证另行验证。
 6. Windows 上游引擎未禁用网络协议；应用自身必须只传入受控本地文件，不应把不可信 URL 交给该引擎。“无运行时下载”不是声称 Windows FFmpeg 二进制不具备网络能力。
 7. 固定哈希防止下载损坏/意外漂移，不是恶意软件安全证明，也不替代安全更新、签名、供应链或许可审查。包升级需要显式更新 lock、复核许可/源码并重跑真实测试。
+
+## Mac 0.1.1：LAME 共享 MP3 编码器
+
+- 版本：3.100。官方来源：`https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz`。
+- SHA256：`ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e`。
+- 许可：LGPL-2.0-or-later；原始 `COPYING` 与 `LICENSE` 保存在 `tools/licenses/LAME-*`。
+- 只构建共享库，关闭命令行前端、静态库及额外依赖；FFmpeg 使用 `--enable-libmp3lame`。
+- 源码 tarball、configure 参数与配置日志一并保存；dylib 安装名改为 `@loader_path`，不引用构建机或 Homebrew 路径。
+- 在两个架构上实际执行 320 kbps MP3 编码和完整解码；缺编码器或可重定位依赖时拒绝发布。

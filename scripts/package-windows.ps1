@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if (-not $IsWindows) { throw 'Windows packaging must run on Windows.' }
 $root = Split-Path $PSScriptRoot -Parent
-$version = '0.1.0'
+$version = ([xml](Get-Content -LiteralPath "$root/Directory.Build.props" -Raw)).Project.PropertyGroup.Version
 $engine = Join-Path $root 'tools/win-x64'
 # Validate before publishing anything. This script never fetches an engine.
 & "$PSScriptRoot/test-engine.ps1" -EngineDirectory $engine

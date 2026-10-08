@@ -9,12 +9,14 @@ case "$RID" in
   *) echo "Unsupported runtime"; exit 1 ;;
 esac
 [[ "$(uname -m)" == "$ARCH" ]] || { echo "Native architecture mismatch"; exit 1; }
-VERSION=0.1.0
+VERSION="$(python3 -c 'import sys,xml.etree.ElementTree as E; print(E.parse(sys.argv[1]).findtext(".//Version"))' "$ROOT/Directory.Build.props")"
 ENGINE="$ROOT/tools/$RID"
 python3 "$ROOT/scripts/macos-engine.py" check "$ENGINE" "$RID"
 cd "$ROOT"
 [[ "$(dotnet --version)" == 10.0.400 ]] || { echo ".NET SDK 10.0.400 required"; exit 1; }
 mkdir -p "$ROOT/artifacts/build" "$ROOT/artifacts/installer"
+MFC_ENGINE_DIR="$ENGINE" dotnet test "$ROOT/MusicFormatConverter.sln" -c Release \
+  --logger trx --results-directory "$ROOT/artifacts/tests/$RID"
 WORK="$(mktemp -d "$ROOT/artifacts/build/package-$RID.XXXXXX")"
 APP="$WORK/音乐格式转换器.app"
 MACOS="$APP/Contents/MacOS"
@@ -32,6 +34,8 @@ cp "$ROOT/docs/engine-provenance.md" "$ROOT/docs/packaging.md" "$APP/Contents/Re
 cp "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/THIRD-PARTY-NOTICES.md" "$ROOT/docs/implementation.md" "$APP/Contents/Resources/"
 cp "$ROOT/installer/macos/Info.plist" "$APP/Contents/Info.plist"
 cp "$ROOT/src/MusicFormatConverter.App/Assets/app-icon.icns" "$APP/Contents/Resources/app-icon.icns"
+python3 "$ROOT/scripts/package-notices.py" \
+  "$ROOT/src/MusicFormatConverter.App/obj/project.assets.json" "$APP/Contents/Resources/third-party"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist"
@@ -81,6 +85,7 @@ if [[ -n "${MFC_NOTARY_PROFILE:-}" ]]; then
   xcrun stapler validate "$DMG"
 fi
 (cd "$(dirname "$DMG")" && shasum -a 256 "$(basename "$DMG")" > "$(basename "$DMG").sha256")
+python3 "$ROOT/scripts/test-macos-package.py" "$DMG" "$RID" "$ROOT/artifacts/installer/validation-$RID.json"
 echo "Native app: $APP"
 echo "DMG ($LABEL): $DMG"
 echo "Not installed or released. Only explicit MFC_NOTARY_PROFILE opts into Apple notarization upload."

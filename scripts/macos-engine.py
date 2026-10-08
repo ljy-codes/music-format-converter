@@ -27,7 +27,7 @@ def write_manifest(directory, runtime):
              for p in sorted(directory.rglob("*"))
              if p.is_file() and p.name != "engine-manifest.json"]
     manifest = {"schema": 1, "runtime": runtime, "version": LOCK["version"],
-                "sourceSha256": LOCK["sourceSha256"], "files": files}
+                "sourceSha256": LOCK["sourceSha256"], "lame": LOCK["lame"], "files": files}
     (directory / "engine-manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
@@ -37,6 +37,8 @@ def check(directory, runtime):
     if (manifest["runtime"], manifest["version"], manifest["sourceSha256"]) != (
             runtime, LOCK["version"], LOCK["sourceSha256"]):
         raise ValueError("Engine manifest does not match source lock/runtime")
+    if manifest.get("lame") != LOCK["lame"]:
+        raise ValueError("LAME manifest differs from source lock")
     seen = set()
     for entry in manifest["files"]:
         path = directory / entry["path"]
@@ -47,6 +49,8 @@ def check(directory, runtime):
             raise ValueError(f"Engine hash mismatch: {path}")
     required = {"ffmpeg", "ffprobe", "LICENSE.txt", "licenses/COPYING.LGPLv2.1",
                 "licenses/LICENSE.md", "provenance/configure.txt",
+                "licenses/LAME-COPYING", "licenses/LAME-LICENSE", "provenance/lame-configure.txt",
+                f"provenance/sources/lame-{LOCK['lame']['version']}.tar.gz",
                 f"provenance/sources/ffmpeg-{LOCK['version']}.tar.xz"}
     if not required.issubset(seen):
         raise ValueError(f"Missing hashed engine components: {required - seen}")
@@ -54,11 +58,15 @@ def check(directory, runtime):
         raise ValueError("Shared libraries missing")
     if sha(directory / f"provenance/sources/ffmpeg-{LOCK['version']}.tar.xz") != LOCK["sourceSha256"]:
         raise ValueError("Corresponding source differs from lock")
+    if sha(directory / f"provenance/sources/lame-{LOCK['lame']['version']}.tar.gz") != LOCK["lame"]["sourceSha256"]:
+        raise ValueError("LAME corresponding source differs from lock")
     if "GNU LESSER GENERAL PUBLIC LICENSE" not in (directory / "LICENSE.txt").read_text():
         raise ValueError("Missing LGPL license")
     expected_arch = {"osx-arm64": "arm64", "osx-x64": "x86_64"}[runtime]
     if platform.system() != "Darwin" or platform.machine() != expected_arch:
         raise ValueError("Must test on matching native macOS architecture")
+    if not (directory / "libmp3lame.dylib").is_file():
+        raise ValueError("Shared MP3 encoder missing")
     for binary in [directory / "ffmpeg", directory / "ffprobe", *directory.glob("*.dylib")]:
         if expected_arch not in run("lipo", "-archs", str(binary)).split():
             raise ValueError(f"Wrong architecture: {binary}")
@@ -79,6 +87,10 @@ def check(directory, runtime):
         if "--enable-gpl" in version or "--enable-nonfree" in version:
             raise ValueError("Forbidden engine configuration")
     ffmpeg, ffprobe = str(directory / "ffmpeg"), str(directory / "ffprobe")
+    encoders = run(ffmpeg, "-hide_banner", "-encoders")
+    for encoder in ("alac", "aac", "libmp3lame", "flac", "pcm_s24le"):
+        if not any(len(parts := line.split()) > 1 and parts[1] == encoder for line in encoders.splitlines()):
+            raise ValueError(f"Required encoder missing: {encoder}")
     decoders = run(ffmpeg, "-hide_banner", "-decoders")
     # Keep broad built-in decoding, rather than a tiny format whitelist build.
     for decoder in ("flac", "alac", "aac", "mp3", "opus", "vorbis", "wavpack", "ape", "wmav2", "pcm_s24le"):
@@ -101,7 +113,8 @@ def check(directory, runtime):
         if sha(temp / "source.pcm") != sha(temp / "result.pcm"):
             raise ValueError("Lossless PCM roundtrip mismatch")
         run(ffmpeg, "-nostdin", "-v", "error", "-i", source, "-c:a", "aac", str(temp / "aac.m4a"))
-    print(f"Verified native {runtime} engine, hashes, dependencies and real FLAC/ALAC/AAC conversions.")
+        run(ffmpeg, "-nostdin", "-v", "error", "-i", source, "-c:a", "libmp3lame", "-b:a", "320k", str(temp / "mp3.mp3"))
+    print(f"Verified native {runtime} engine, hashes, dependencies and real FLAC/ALAC/AAC/MP3 conversions.")
 
 
 if __name__ == "__main__":
