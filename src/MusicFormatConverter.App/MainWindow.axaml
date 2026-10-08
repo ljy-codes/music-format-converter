@@ -1,0 +1,205 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MusicFormatConverter.App.ViewModels"
+        x:Class="MusicFormatConverter.App.MainWindow"
+        x:DataType="vm:WorkspaceViewModel"
+        Title="音乐格式转换器"
+        Icon="/Assets/app-icon.ico"
+        Width="1280" Height="820" MinWidth="1050" MinHeight="720"
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="20">
+    <!-- Native titlebar is retained for platform window controls, snapping and accessibility. -->
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+      <Image x:Name="BrandIcon" Width="48" Height="48" Source="/Assets/app-icon.png"
+             AutomationProperties.Name="音乐格式转换器标志"/>
+      <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+        <TextBlock Text="音乐格式转换器" FontSize="23" FontWeight="SemiBold"/>
+        <TextBlock Text="为 Apple Music 保真整理，也可选择其他输出格式。" Classes="muted"/>
+      </StackPanel>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+        <TextBlock Text="离线处理 · 本地运行" Classes="caption" VerticalAlignment="Center"/>
+        <Button x:Name="ThemeButton" Content="切换浅色" Classes="quiet" Click="ToggleTheme"
+                AutomationProperties.Name="切换深色或浅色主题"/>
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,320" ColumnSpacing="20">
+      <Border Classes="panel" Padding="18">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4" VerticalAlignment="Center">
+              <TextBlock Text="转换队列" Classes="section" FontSize="18"/>
+              <TextBlock Text="{Binding QueueCaption}" Classes="caption"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+              <Button Content="添加文件" Classes="quiet" Click="ImportFiles" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="添加文件夹" Classes="quiet" Click="ImportFolders" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="清空" Classes="quiet" Click="ClearQueue" IsEnabled="{Binding CanClear}"/>
+            </StackPanel>
+          </Grid>
+          <Border Grid.Row="1" Background="{DynamicResource AccentSoftBrush}" CornerRadius="8" Padding="12,9">
+            <TextBlock Text="01  导入音乐     →     02  预检确认     →     03  安全转换"
+                       Foreground="{DynamicResource AccentTextBrush}" FontSize="12"/>
+          </Border>
+
+          <Grid Grid.Row="2">
+            <Border x:Name="EmptyState" IsVisible="{Binding IsEmpty}" CornerRadius="10"
+                    Background="{DynamicResource InsetBrush}" BorderBrush="{DynamicResource StrokeBrush}"
+                    BorderThickness="1" Padding="16">
+              <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+                <Border Width="64" Height="64" Background="{DynamicResource AccentSoftBrush}" CornerRadius="18"
+                        HorizontalAlignment="Center">
+                  <PathIcon Width="34" Height="34" Foreground="{DynamicResource AccentTextBrush}"
+                            Data="M12,3 L29,0 L29,23 C29,30 17,31 17,24 C17,20 22,18 26,19 L26,7 L15,9 L15,27 C15,34 3,35 3,28 C3,24 8,22 12,23 Z"/>
+                </Border>
+                <TextBlock Text="把音乐放进来" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Text="拖入文件或整个文件夹，也可以点击下方按钮。"
+                           Classes="muted" TextWrapping="Wrap" TextAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                  <Button Content="选择音乐文件" Classes="primary" Click="ImportFiles" IsEnabled="{Binding CanEdit}"/>
+                  <Button Content="选择文件夹" Classes="quiet" Click="ImportFolders" IsEnabled="{Binding CanEdit}"/>
+                </StackPanel>
+                <TextBlock Text="FLAC · WAV · MP3 · AAC · M4A · 更多音频格式"
+                           Classes="caption" TextAlignment="Center" TextWrapping="Wrap"/>
+                <TextBlock Text="不支持的格式会在预检中说明原因，不会修改源文件。"
+                           Classes="caption" TextAlignment="Center" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+
+            <Grid IsVisible="{Binding HasItems}" RowDefinitions="Auto,*" RowSpacing="8">
+              <Grid ColumnDefinitions="*,82,72" Margin="10,0,10,0">
+                <TextBlock Text="文件与处理说明" Classes="caption"/>
+                <TextBlock Grid.Column="1" Text="处理策略" Classes="caption"/>
+                <TextBlock Grid.Column="2" Text="状态" Classes="caption"/>
+              </Grid>
+              <ListBox x:Name="QueueList" Grid.Row="1" ItemsSource="{Binding Items}"
+                       SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                       Background="Transparent" BorderThickness="0"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                       ScrollViewer.VerticalScrollBarVisibility="Auto"
+                       AutomationProperties.Name="音频转换队列">
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:QueueItemViewModel">
+                    <Grid ColumnDefinitions="*,82,72" RowDefinitions="Auto,Auto,Auto,Auto"
+                          RowSpacing="5" ToolTip.Tip="{Binding FullDetail}">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,0,12,0"/>
+                      <TextBlock Grid.Column="1" Text="{Binding ActionText}" Foreground="{DynamicResource AccentTextBrush}" FontSize="12"/>
+                      <TextBlock Grid.Column="2" Text="{Binding StatusText}" FontSize="12"/>
+                      <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding FormatText}" Classes="caption"/>
+                      <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis"/>
+                      <ProgressBar Grid.Row="3" Grid.ColumnSpan="3" Value="{Binding Percent}"
+                                   IsVisible="{Binding IsProcessing}" Height="3" MinHeight="3"/>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </Grid>
+          <Border Grid.Row="3" IsVisible="{Binding HasSelection}" Background="{DynamicResource InsetBrush}"
+                  CornerRadius="8" Padding="12">
+            <ScrollViewer MaxHeight="95" HorizontalScrollBarVisibility="Disabled">
+              <SelectableTextBlock Text="{Binding SelectedItem.FullDetail}" TextWrapping="Wrap"
+                                   FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1" Classes="panel" Padding="20">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="16">
+            <TextBlock Text="转换设置" Classes="section" FontSize="18"/>
+            <StackPanel Spacing="8" IsEnabled="{Binding CanEdit}">
+              <TextBlock Text="输出位置" Classes="section"/>
+              <TextBox x:Name="OutputPathBox" Text="{Binding OutputDirectory, Mode=TwoWay}"
+                       Watermark="请选择输出文件夹" ToolTip.Tip="{Binding OutputDirectory}"
+                       AutomationProperties.Name="输出文件夹路径"/>
+              <Button Content="选择输出文件夹…" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                      Classes="quiet" Click="ChooseOutput"/>
+              <TextBlock Text="独立输出，不覆盖、不删除原文件。" Classes="caption"/>
+            </StackPanel>
+            <Border Height="1" Background="{DynamicResource StrokeBrush}"/>
+            <StackPanel Spacing="9" IsEnabled="{Binding CanEdit}">
+              <TextBlock Text="转换模式" Classes="section"/>
+              <ComboBox x:Name="ModeSelector" SelectedIndex="{Binding ModeIndex, Mode=TwoWay}"
+                        HorizontalAlignment="Stretch" AutomationProperties.Name="转换模式">
+                <ComboBoxItem Content="Apple Music · 智能保真（默认）"/>
+                <ComboBoxItem Content="统一 ALAC · 无损编码"/>
+                <ComboBoxItem Content="节省空间 AAC · 有损编码"/>
+                <ComboBoxItem Content="自选 MP3 · 320 kbps"/>
+                <ComboBoxItem Content="自选 FLAC · 无损归档"/>
+                <ComboBoxItem Content="自选 WAV · PCM 音频"/>
+              </ComboBox>
+              <TextBlock Text="{Binding ModeDescription}" Classes="caption" TextWrapping="Wrap" LineHeight="19"/>
+            </StackPanel>
+            <Border Height="1" Background="{DynamicResource StrokeBrush}"/>
+            <StackPanel Spacing="3" IsEnabled="{Binding CanEdit}">
+              <CheckBox Content="保留来源文件夹结构" IsChecked="{Binding PreserveFolders, Mode=TwoWay}"/>
+              <CheckBox Content="完整音频检查（推荐）" IsChecked="{Binding VerifyAudio, Mode=TwoWay}"/>
+              <TextBlock Text="复制文件也完整解码检查，耗时可能较长。"
+                         Classes="caption" TextWrapping="Wrap" Margin="28,0,0,6"/>
+              <CheckBox Content="转码时保留标签与封面" IsChecked="{Binding PreserveMetadata, Mode=TwoWay}"
+                        ToolTip.Tip="仅影响重封装与转码；原样复制不会删除标签或封面。"/>
+              <TextBlock x:Name="MetadataHint" Text="原样复制始终保留标签与封面。"
+                         Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0"/>
+            </StackPanel>
+            <Border IsVisible="{Binding ShowVerificationWarning}" Background="{DynamicResource WarningSurfaceBrush}"
+                    CornerRadius="8" Padding="10">
+              <TextBlock Text="注意：已关闭完整音频检查，无法确认音频内容是否完整。"
+                         Foreground="{DynamicResource WarningBrush}" FontSize="12" TextWrapping="Wrap"/>
+            </Border>
+            <Border Background="{DynamicResource InsetBrush}" CornerRadius="8" Padding="12">
+              <StackPanel Spacing="7">
+                <TextBlock Text="安全说明" FontWeight="SemiBold" FontSize="12"/>
+                <TextBlock Text="仅处理可支持的音频，不破解加密文件。不承诺歌词保留，不自动导入播放器。"
+                           Classes="caption" TextWrapping="Wrap" LineHeight="19"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2" Classes="panel" Padding="18,14">
+      <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel Spacing="4">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="{Binding PhaseText}" FontWeight="SemiBold"/>
+              <TextBlock Text="{Binding ResultsSummary}" Classes="caption" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="{Binding PreviewSummary}" Classes="caption" TextWrapping="Wrap"/>
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Content="取消" Click="CancelWork" IsVisible="{Binding IsBusy}" IsEnabled="{Binding CanCancel}" Classes="quiet"/>
+            <Button Content="重试失败项" Click="RetryFailed" IsVisible="{Binding CanRetry}" IsEnabled="{Binding CanRetry}" Classes="quiet"/>
+            <Button x:Name="PreviewButton" Content="1  开始预检" Click="Preview" IsEnabled="{Binding CanPreview}" Classes="quiet"/>
+            <Button x:Name="ConvertButton" Content="2  开始转换" Click="Convert" IsEnabled="{Binding CanConvert}" Classes="primary" MinWidth="130"/>
+          </StackPanel>
+        </Grid>
+        <ProgressBar Grid.Row="1" Value="{Binding BatchPercent}" IsIndeterminate="{Binding IsIndeterminate}" Height="4" MinHeight="4"/>
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel Spacing="6" VerticalAlignment="Center">
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding StatusMessage}" AutomationProperties.LiveSetting="Polite"/>
+            <Expander Header="查看预检提醒" IsVisible="{Binding HasWarnings}" Padding="0">
+              <ScrollViewer MaxHeight="100">
+                <SelectableTextBlock Text="{Binding Warnings}" TextWrapping="Wrap" FontSize="12"
+                                     Foreground="{DynamicResource WarningBrush}"/>
+              </ScrollViewer>
+            </Expander>
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{Binding ProgressCaption}" Classes="caption" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Button Content="打开输出" Click="OpenOutput" IsEnabled="{Binding CanOpenOutput}" Classes="quiet"/>
+            <Button Content="导出报告" Click="ExportReport" IsEnabled="{Binding CanExport}" Classes="quiet"/>
+          </StackPanel>
+        </Grid>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

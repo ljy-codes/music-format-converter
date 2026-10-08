@@ -1,0 +1,72 @@
+name: Build offline packages (no release)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.400'
+      - name: Fetch pinned LGPL engine and test real conversion
+        shell: pwsh
+        run: ./scripts/fetch-engine.ps1
+      - name: Full test suite including native engine integration
+        shell: pwsh
+        run: |
+          $env:MFC_ENGINE_DIR = "$env:GITHUB_WORKSPACE/tools/win-x64"
+          dotnet test MusicFormatConverter.sln -c Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build actual offline installer (never install)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe"
+          if (-not (Test-Path -LiteralPath $iscc)) { throw "Runner lacks Inno Setup 6: $iscc" }
+          ./scripts/package-windows.ps1 -IsccPath $iscc -Zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-offline-unsigned
+          if-no-files-found: error
+          path: |
+            artifacts/installer/*.exe
+            artifacts/installer/*.sha256
+            artifacts/*.zip
+            artifacts/*.sha256
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            rid: osx-arm64
+          - runner: macos-15-intel
+            rid: osx-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.400'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Native LGPL build from pinned official source and PCM roundtrip
+        run: bash scripts/build-engine-macos.sh '${{ matrix.rid }}'
+      - name: Core and native engine integration tests
+        env:
+          MFC_ENGINE_DIR: ${{ github.workspace }}/tools/${{ matrix.rid }}
+        run: dotnet test tests/MusicFormatConverter.Core.Tests -c Release
+      - name: Build unsigned native app and DMG
+        run: bash scripts/package-macos.sh '${{ matrix.rid }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.rid }}-unsigned
+          if-no-files-found: error
+          path: |
+            artifacts/installer/*-${{ matrix.rid }}-unsigned.dmg
+            artifacts/installer/*-${{ matrix.rid }}-unsigned.dmg.sha256

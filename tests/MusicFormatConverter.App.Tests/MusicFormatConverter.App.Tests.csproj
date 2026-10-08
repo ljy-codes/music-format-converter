@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" PrivateAssets="all" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <!-- Allows state tests to run while another agent is implementing Core; no fake runtime service. -->
+  <ItemGroup Condition="'$(AppStateOnly)' == 'true'">
+    <Compile Include="../../src/MusicFormatConverter.Core/Models.cs" Link="Core/Models.cs" />
+    <Compile Include="../../src/MusicFormatConverter.App/ViewModels/**/*.cs" LinkBase="ViewModels" />
+    <Compile Include="../../src/MusicFormatConverter.App/Services/IConversionService.cs" Link="Services/IConversionService.cs" />
+    <Compile Remove="HeadlessTests.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(AppStateOnly)' != 'true'">
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.3.22" />
+    <ProjectReference Include="../../src/MusicFormatConverter.App/MusicFormatConverter.App.csproj" />
+  </ItemGroup>
+</Project>
