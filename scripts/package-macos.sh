@@ -28,7 +28,7 @@ dotnet publish "$ROOT/src/MusicFormatConverter.App/MusicFormatConverter.App.cspr
 for required in MusicFormatConverter.App MusicFormatConverter.App.dll libcoreclr.dylib libhostfxr.dylib; do
   [[ -f "$MACOS/$required" ]] || { echo "Missing self-contained app component: $required"; exit 1; }
 done
-lipo -verify_arch "$ARCH" "$MACOS/MusicFormatConverter.App"
+lipo "$MACOS/MusicFormatConverter.App" -verify_arch "$ARCH"
 cp -R "$ENGINE" "$MACOS/tools"
 cp "$ROOT/docs/engine-provenance.md" "$ROOT/docs/packaging.md" "$APP/Contents/Resources/"
 cp "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/THIRD-PARTY-NOTICES.md" "$ROOT/docs/implementation.md" "$APP/Contents/Resources/"

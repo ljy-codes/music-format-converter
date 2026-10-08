@@ -43,7 +43,7 @@ def check(dmg, runtime, report):
         architecture = {"osx-arm64": "arm64", "osx-x64": "x86_64"}[runtime]
         for file in macos.rglob("*"):
             if file.is_file() and "Mach-O" in run("file", "-b", str(file)):
-                run("lipo", "-verify_arch", architecture, str(file))
+                run("lipo", str(file), "-verify_arch", architecture)
         run("codesign", "--verify", "--deep", "--strict", str(app))
         engine = macos / "tools"
         run("python3", str(ROOT / "scripts/macos-engine.py"), "check", str(engine), runtime)
