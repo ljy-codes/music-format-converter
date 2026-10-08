@@ -88,12 +88,12 @@ def check(directory, runtime):
             raise ValueError("Forbidden engine configuration")
     ffmpeg, ffprobe = str(directory / "ffmpeg"), str(directory / "ffprobe")
     encoders = run(ffmpeg, "-hide_banner", "-encoders")
-    for encoder in ("alac", "aac", "libmp3lame", "flac", "pcm_s24le"):
+    for encoder in ("alac", "aac", "libmp3lame", "flac", "pcm_s24le", "png", "mjpeg"):
         if not any(len(parts := line.split()) > 1 and parts[1] == encoder for line in encoders.splitlines()):
             raise ValueError(f"Required encoder missing: {encoder}")
     decoders = run(ffmpeg, "-hide_banner", "-decoders")
     # Keep broad built-in decoding, rather than a tiny format whitelist build.
-    for decoder in ("flac", "alac", "aac", "mp3", "opus", "vorbis", "wavpack", "ape", "wmav2", "pcm_s24le"):
+    for decoder in ("flac", "alac", "aac", "mp3", "opus", "vorbis", "wavpack", "ape", "wmav2", "pcm_s24le", "png", "mjpeg"):
         if not any(len(parts := line.split()) > 1 and parts[1] == decoder
                    for line in decoders.splitlines()):
             raise ValueError(f"Required decoder missing: {decoder}")

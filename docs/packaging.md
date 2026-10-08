@@ -62,7 +62,7 @@ bash scripts/package-macos.sh osx-arm64
 # Intel Mac 使用同一流程，将 RID 改为 osx-x64
 ```
 
-引擎脚本下载锁定的官方 FFmpeg 8.1.3 tarball，验证 SHA256 后本地编译；保持内建解码器、封装器、过滤器和音频编码器，不启用 GPL、nonfree、version3、network 或外部库自动探测；仅明确启用本次源码构建的 LAME。保留 lavfi，执行真实音频生成、FLAC→ALAC 无损 PCM 对比和 AAC 编码测试。
+引擎脚本下载锁定的官方 FFmpeg 8.1.3 tarball，验证 SHA256 后本地编译；保持内建解码器、封装器、过滤器和音频编码器，不启用 GPL、nonfree、version3、network 或外部库自动探测；明确启用源码构建的 LAME 与 macOS 系统 zlib（PNG 封面所需）。保留 lavfi，执行真实音频生成、FLAC→ALAC 无损 PCM 对比和 AAC 编码测试。
 
 使用共享 dylib；将所有 FFmpeg dylib 放在引擎旁，以 `@loader_path` 寻址。验证架构、`otool -L` 依赖解析；只允许同目录引擎库和 Apple 系统库，不允许 Homebrew/构建机绝对路径。仅显式启用锁定的 libmp3lame 共享编码器；LAME dylib、源码、配置及许可一起分发。没有 libopus 外部编码器；内建 MP3/Opus 解码器保留。
 

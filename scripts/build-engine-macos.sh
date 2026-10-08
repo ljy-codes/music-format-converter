@@ -67,6 +67,7 @@ CONFIGURE=(
   --disable-gpl --disable-nonfree --disable-version3 --disable-network
   --disable-autodetect --disable-doc --disable-debug --disable-x86asm
   --disable-programs --enable-ffmpeg --enable-ffprobe
+  --enable-zlib
   --enable-libmp3lame "--extra-cflags=-I$PREFIX/include" "--extra-ldflags=-L$PREFIX/lib"
 )
 printf '%q ' ./configure "${CONFIGURE[@]}" > "$STAGE/provenance/configure.txt"

@@ -101,3 +101,5 @@ tools/
 - 在两个架构上实际执行 320 kbps MP3 编码和完整解码；缺编码器或可重定位依赖时拒绝发布。
 
 Mac 使用随包 `lame-macos.patch` 删除 LAME 导出表中已被上游设为 static 的废弃 `lame_init_old`，修复现代 Apple 链接器错误。受支持的 `lame_init` 与编码实现保持不变；原始源码加该补丁构成对应源码。
+
+显式启用 macOS SDK/系统的 zlib（运行时 `/usr/lib/libz.1.dylib`）以支持 PNG 封面编解码；不开启 Homebrew 自动探测。引擎验证同时要求 PNG/MJPEG 编解码器，并执行包含封面迁移的完整回归。
