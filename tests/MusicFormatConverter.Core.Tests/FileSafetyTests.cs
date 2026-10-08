@@ -2,7 +2,21 @@ namespace MusicFormatConverter.Core.Tests;
 
 public sealed class TestFolder : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "mfc-test-" + Guid.NewGuid().ToString("N"));
+    public string Path { get; } = System.IO.Path.Combine(TemporaryRoot(), "mfc-test-" + Guid.NewGuid().ToString("N"));
+    private static string TemporaryRoot()
+    {
+        // macOS TMPDIR normally traverses /var -> /private/var. Use its real
+        // location for fixtures without relaxing the application's link rejection.
+        var temp = System.IO.Path.GetFullPath(System.IO.Path.GetTempPath());
+        var root = System.IO.Path.GetPathRoot(temp)!;
+        foreach (var segment in temp[root.Length..].Split(System.IO.Path.DirectorySeparatorChar,
+                     StringSplitOptions.RemoveEmptyEntries))
+        {
+            var directory = new DirectoryInfo(System.IO.Path.Combine(root, segment));
+            root = directory.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? directory.FullName;
+        }
+        return root;
+    }
     public TestFolder() => Directory.CreateDirectory(Path);
     public string File(string name, string contents = "sample")
     {

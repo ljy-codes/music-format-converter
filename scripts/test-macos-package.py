@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Mount the real DMG, copy out the app, validate and run it outside the build tree."""
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -23,7 +24,7 @@ def run(*args, env=None):
 
 def check(dmg, runtime, report):
     with tempfile.TemporaryDirectory(prefix="mfc-package-") as temporary:
-        temporary = pathlib.Path(temporary)
+        temporary = pathlib.Path(temporary).resolve()
         mount = temporary / "mounted"
         run("hdiutil", "attach", "-readonly", "-nobrowse", "-mountpoint", str(mount), str(dmg))
         try:
@@ -107,6 +108,7 @@ def check(dmg, runtime, report):
         report.parent.mkdir(parents=True, exist_ok=True)
         report.write_text(json.dumps(result, indent=2) + "\n")
         print(json.dumps(result, indent=2))
+        print("MFC_PACKAGE_VALIDATION=" + base64.b64encode(json.dumps(result).encode()).decode())
 
 
 if __name__ == "__main__":
