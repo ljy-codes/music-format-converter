@@ -99,3 +99,5 @@ tools/
 - 只构建共享库，关闭命令行前端、静态库及额外依赖；FFmpeg 使用 `--enable-libmp3lame`。
 - 源码 tarball、configure 参数与配置日志一并保存；dylib 安装名改为 `@loader_path`，不引用构建机或 Homebrew 路径。
 - 在两个架构上实际执行 320 kbps MP3 编码和完整解码；缺编码器或可重定位依赖时拒绝发布。
+
+Mac 使用随包 `lame-macos.patch` 删除 LAME 导出表中已被上游设为 static 的废弃 `lame_init_old`，修复现代 Apple 链接器错误。受支持的 `lame_init` 与编码实现保持不变；原始源码加该补丁构成对应源码。

@@ -9,7 +9,7 @@ case "$RID" in
   *) echo "Unsupported runtime: $RID"; exit 1 ;;
 esac
 [[ "$(uname -m)" == "$ARCH" ]] || { echo "Use a matching native runner, not cross compilation/Rosetta."; exit 1; }
-for tool in python3 clang make tar curl shasum install_name_tool otool lipo; do command -v "$tool" >/dev/null; done
+for tool in python3 clang make tar curl shasum install_name_tool otool lipo patch; do command -v "$tool" >/dev/null; done
 VERSION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["macos"]["version"])' "$ROOT/scripts/engine-lock.json")"
 SHA="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["macos"]["sourceSha256"])' "$ROOT/scripts/engine-lock.json")"
 URL="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["macos"]["sourceUrl"])' "$ROOT/scripts/engine-lock.json")"
@@ -43,6 +43,10 @@ mkdir -p "$STAGE/licenses" "$STAGE/provenance/sources"
 export MACOSX_DEPLOYMENT_TARGET=14.0
 # LAME is the only external codec; build it shared so users can replace it.
 cd "$WORK/lame-$LAME_VERSION"
+# Upstream makes the obsolete initializer static but still exports its symbol.
+# Modern Apple linkers reject this stale entry; the supported lame_init API remains.
+patch -p1 < "$ROOT/scripts/lame-macos.patch"
+cp "$ROOT/scripts/lame-macos.patch" "$STAGE/provenance/"
 LAME_CONFIGURE=("--prefix=$PREFIX" --enable-shared --disable-static --disable-frontend --disable-dependency-tracking)
 printf '%q ' ./configure "${LAME_CONFIGURE[@]}" > "$STAGE/provenance/lame-configure.txt"
 printf '\n' >> "$STAGE/provenance/lame-configure.txt"

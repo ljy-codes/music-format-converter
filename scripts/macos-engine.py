@@ -49,7 +49,7 @@ def check(directory, runtime):
             raise ValueError(f"Engine hash mismatch: {path}")
     required = {"ffmpeg", "ffprobe", "LICENSE.txt", "licenses/COPYING.LGPLv2.1",
                 "licenses/LICENSE.md", "provenance/configure.txt",
-                "licenses/LAME-COPYING", "licenses/LAME-LICENSE", "provenance/lame-configure.txt",
+                "licenses/LAME-COPYING", "licenses/LAME-LICENSE", "provenance/lame-configure.txt", "provenance/lame-macos.patch",
                 f"provenance/sources/lame-{LOCK['lame']['version']}.tar.gz",
                 f"provenance/sources/ffmpeg-{LOCK['version']}.tar.xz"}
     if not required.issubset(seen):
