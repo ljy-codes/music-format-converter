@@ -49,6 +49,12 @@ def check(dmg, runtime, report):
         run("python3", str(ROOT / "scripts/macos-engine.py"), "check", str(engine), runtime)
         if not (app / "Contents/Resources/third-party/packages.json").is_file():
             raise ValueError("Package notices missing")
+        managed = app / "Contents/Resources/managed"
+        for component in ("libhostfxr.dylib", "libhostpolicy.dylib", "libcoreclr.dylib", "libAvaloniaNative.dylib"):
+            if not (managed / component).is_file():
+                raise ValueError(f"App-local runtime component missing beside managed entry: {component}")
+        if (managed / "tools").resolve() != engine.resolve():
+            raise ValueError("Managed application base directory cannot locate its bundled engine")
         # Publish only a temporary CLI harness, using precisely the engine shipped in the app.
         cli = temporary / "cli"
         run("dotnet", "publish", str(ROOT / "src/MusicFormatConverter.Cli"), "-c", "Release",

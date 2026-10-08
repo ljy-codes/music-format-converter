@@ -24,6 +24,13 @@ def arrange(app):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(file), target)
         file.symlink_to(os.path.relpath(target, file.parent), target_is_directory=target.is_dir())
+    # The apphost resolves the managed entry DLL's real path. Its app-local
+    # runtime and native assets must therefore also be discoverable beside it.
+    managed = contents / "Resources/managed"
+    managed.mkdir(parents=True, exist_ok=True)
+    for library in (contents / "Frameworks").iterdir():
+        (managed / library.name).symlink_to(os.path.relpath(library, managed))
+    (managed / "tools").symlink_to("../tools", target_is_directory=True)
 
 
 if __name__ == "__main__":
