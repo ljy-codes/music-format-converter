@@ -41,7 +41,7 @@ def check(dmg, runtime, report):
         if info["CFBundleExecutable"] != executable.name or info["LSMinimumSystemVersion"] != "14.0":
             raise ValueError("Invalid bundle metadata")
         architecture = {"osx-arm64": "arm64", "osx-x64": "x86_64"}[runtime]
-        for file in macos.rglob("*"):
+        for file in (app / "Contents").rglob("*"):
             if file.is_file() and "Mach-O" in run("file", "-b", str(file)):
                 run("lipo", str(file), "-verify_arch", architecture)
         run("codesign", "--verify", "--deep", "--strict", str(app))

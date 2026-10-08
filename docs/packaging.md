@@ -120,3 +120,9 @@ pwsh -NoProfile -File ./scripts/test-packaging.ps1
 只有两架构都通过后，才创建同一版本的 GitHub Release，上传两份 DMG 与 SHA256。逐架构验证 JSON 由本地/构建目录保存并追加到 Release。先上传 draft 再公开；已有 Release 不覆盖，必须修改版本号。普通 package.yml 继续只上传 Actions 产物。`docs/macos-release-workflow.yml` 是可选的自动发布工作流示例，启用它需要 GitHub workflow 权限；本次使用现有工作流构建后发布，不依赖新增权限。
 
 安装包在 `Contents/Resources/third-party` 保存 NuGet 包的许可声明、版权元数据及随包 license/notices。FFmpeg/LAME 对应完整源码和构建参数在 `Contents/MacOS/tools/provenance`；这两个共享工具库可被用户替换。
+
+### Mac bundle 布局与签名
+
+主程序与原生辅助可执行文件留在 `Contents/MacOS`；托管 DLL、JSON 和其他数据位于 `Contents/Resources/managed`，动态库位于 `Contents/Frameworks`，引擎与其源码/许可位于 `Contents/Resources/tools`。`MacOS` 中使用 bundle 内的相对符号链接保持 .NET 和引擎查找路径。签名按实际 Mach-O 文件逐个完成，最后签主应用；不将托管 DLL 当作原生代码，不在签名完成后改动资源。
+
+布局依据 Avalonia 官方 Mac 部署说明：https://docs.avaloniaui.net/docs/deployment/macos 。打包检查遍历整个 Contents，核对所有原生二进制架构，并验证复制后的完整 bundle 签名和真实启动。

@@ -40,6 +40,7 @@ python3 "$ROOT/scripts/package-notices.py" \
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist"
 chmod +x "$MACOS/MusicFormatConverter.App" "$MACOS/tools/ffmpeg" "$MACOS/tools/ffprobe"
+python3 "$ROOT/scripts/layout-macos-bundle.py" "$APP"
 
 # Signing is opt-in. Default '-' means ad-hoc, NOT Developer ID/notarized.
 IDENTITY="${MFC_CODESIGN_IDENTITY:--}"
@@ -51,10 +52,13 @@ if [[ "$IDENTITY" != "-" ]]; then
 fi
 # Sign inside-out; do not use --deep to hide nested signing mistakes.
 while IFS= read -r -d '' binary; do
+  # codesign recognizes the main executable as the entire surrounding bundle;
+  # sign it only after every nested component and resource is ready.
+  [[ "$binary" != "$MACOS/MusicFormatConverter.App" ]] || continue
   if file -b "$binary" | grep -q 'Mach-O'; then
     codesign "${SIGN_ARGS[@]}" --entitlements "$ROOT/installer/macos/entitlements.plist" "$binary"
   fi
-done < <(find "$MACOS" -type f -print0)
+done < <(find "$APP/Contents" -type f -print0)
 # Signatures change engine bytes; seal the signed copy and validate it again.
 python3 "$ROOT/scripts/macos-engine.py" manifest "$MACOS/tools" "$RID"
 python3 "$ROOT/scripts/macos-engine.py" check "$MACOS/tools" "$RID"
